@@ -73,9 +73,9 @@ function open(data) {
 	if (Store.to_clipboard && Store.clipboard_only) {
 		notify("Image uploaded", "The URL has been copied to your clipboard.");
 	} else if (Store.to_direct_link) {
-		chrome.tabs.create({ url: imageLink, selected: true });
+		chrome.tabs.create({ url: imageLink, selected: !Store.no_focus });
 	} else {
-		chrome.tabs.create({ url: 'https://imgur.com/' + data.id, selected: true });
+		chrome.tabs.create({ url: 'https://imgur.com/' + data.id, selected: !Store.no_focus });
 	}
 }
 
@@ -95,16 +95,20 @@ Store.listener(chrome.runtime.onInstalled, details => {
 		Store.authorized = false;
 		Store.incognito = false;
 		Store.to_direct_link = false;
+		Store.no_focus = false;
 		Store.to_clipboard = false;
+		Store.clipboard_only = false;
 		Store.to_albums = false;
 		Store.scale_capture = false;
 		Store.albums = {};
 
 		Store.access_token = null;
 		Store.valid_until = 0;
-	} else if (details.reason === "update" && Number(details.previousVersion) < 2) {
+	} else if (details.reason === "update" && Number(details.previousVersion.split(".")[0]) < 2) {
 		chrome.storage.local.remove("expired");
 		Store.scale_capture = false;
+		Store.no_focus = false;
+		Store.clipboard_only = false;
 
 		Store.valid_until = 0;
 	}

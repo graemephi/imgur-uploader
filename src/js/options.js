@@ -23,7 +23,21 @@ function authenticationRedirect() {
 	return false;
 }
 
-const Store = chrome.extension.getBackgroundPage().getStore();
+var Store = (_ => {
+	let backgroundPage = chrome.extension.getBackgroundPage();
+
+	if (backgroundPage) {
+		return backgroundPage.getStore();
+	} else {
+		// This is unpleasant. Maybe defeats the whole purpose. Oh well
+
+		chrome.runtime.sendMessage({ type: "wakeup" }, _ => {
+			Store = chrome.extension.getBackgroundPage().getStore();
+		});
+
+		return new SynchronousStore();
+	}
+})();
 
 if (!authenticationRedirect()) {
 	window.onload = _ => Store.onLoad(wire);
@@ -56,9 +70,12 @@ function wire() {
 		document.getElementById('to_direct_link').checked = true;
 	}
 
+	if (Store.no_focus) {
+		document.getElementById('no_focus').checked = true;
+	}
+
 	if (Store.to_clipboard) {
 		document.getElementById('to_clipboard').checked = true;
-		document.getElementById('clipboard_only').removeAttribute("disabled");
 	}
 
 	if (Store.clipboard_only) {
@@ -90,14 +107,12 @@ function wire() {
 		Store.to_direct_link = event.target.checked;
 	});
 
+	document.getElementById('no_focus').addEventListener('change', function (event) {
+		Store.no_focus = event.target.checked;
+	});
+
 	document.getElementById('to_clipboard').addEventListener('change', function (event) {
 		Store.to_clipboard = event.target.checked;
-
-		if (Store.to_clipboard) {
-			document.getElementById('clipboard_only').removeAttribute("disabled");
-		} else {
-			document.getElementById('clipboard_only').setAttribute("disabled", "disabled");
-		}
 	});
 
 	document.getElementById('clipboard_only').addEventListener('change', function (event) {

@@ -7,7 +7,7 @@ if (!client_secret) {
     throw new Error("Missing imgur api keys");
 }
 
-const syncStoreKeys = ["incognito", "to_direct_link", "to_clipboard", "clipboard_only", "scale_capture", "to_albums", "albums", "username", "authorized", "refresh_token"];
+const syncStoreKeys = ["incognito", "to_direct_link", "no_focus", "to_clipboard", "clipboard_only", "scale_capture", "to_albums", "albums", "username", "authorized", "refresh_token"];
 const localStoreKeys = ["access_token", "valid_until"];
 
 const Auth_Success = 1;
