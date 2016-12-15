@@ -23,7 +23,7 @@ function authenticationRedirect() {
 	return false;
 }
 
-var Store = new SynchronousStore(true);
+var Store = new SynchronousStore();
 
 if (!authenticationRedirect()) {
 	window.onload = _ => Store.onLoad(wire);
