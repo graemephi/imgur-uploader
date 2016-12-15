@@ -9,7 +9,7 @@ function getStore() {
 }
 
 function imageUploadRequest(image, anonymous) {
-	let authorization = anonymous ? `Bearer ${Store.access_token}` : `Client-id ${client_id}`;
+	let authorization = anonymous ? `Client-id ${client_id}` : `Bearer ${Store.access_token}`;
 
 	return request("https://api.imgur.com/3/image")
 		.post(image)
