@@ -322,8 +322,9 @@ function updateAndDisplayAlbums() {
 
 			if (albumsHaveUpdate) {
 				Store.saveAlbums();
-				populateAlbumMenu();
 			}
+
+			populateAlbumMenu();
 		}
 
 		document.getElementById("album-options").style.display = "";
