@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Imgur Chrome Options</title>
+  <script src="js/common.js"></script>
+  <script src="js/options.js"></script>
+  <style>
+    ul.menu {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    .menu > li {
+      height: 30px;
+      width: 50%;
+      float: left;
+      text-align: center;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .menu > li:not(.selected) {
+      color: lightgray;
+    }
+
+    #user {
+      font-weight: bold;
+    }
+
+    .info {
+      max-width: 75%;
+      display: block;
+    }
+
+    .button {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #album-list {
+      display: flex;
+      flex-flow: row wrap;
+      align-items: flex-start;
+    }
+
+    .album-cover {
+      max-height: 150px;
+      max-width: 150px;
+      border-top-left-radius: 3px;
+      border-top-right-radius: 3px;
+    }
+
+    .album-selector {
+      margin: 4px;
+      background-color: #141518;
+      border-radius: 9px;
+      flex: 0 1 auto;
+    }
+
+    .album-selector.selected {
+      border: 5px #39c442 solid;
+      box-shadow: inset 0px 0px 15px 1px rgba(121,216,127,0.8);
+    }
+
+    .album-selector:not(.selected) {
+      border: 5px #6C6C6C solid;
+    }
+
+    .album-selector > input {
+      visibility: hidden;
+      position: absolute;
+    }
+
+    .album-title {
+      color: #f2f2f2;
+      text-align: center;
+      font-weight: bold;
+      min-height: 25px;
+      max-width: 150px;
+      margin: 0;
+    }
+
+    .album-title:empty {
+      display: none;
+    }
+  </style>
+</head>
+<body class="frame">
+  <div class="navigation">
+    <ul class="menu">
+      <li id="settings-menu-item" class="selected">
+        Settings
+      </li>
+      <li id="about-menu-item">
+        About
+      </li>
+    </ul>
+  </div>
+  <div id="settings">
+    <section id="authorize" style="display: none;">
+      <h3>Authorize</h3>
+      <div class="button">
+        <button id="auth-button">Authorize</button>
+        <span class="info">Allow this extension to add the images you upload to your imgur gallery</span>
+      </div>
+    </section>
+    <section id="current-account" style="display: none;">
+      <h3>Current Imgur Account</h3>
+      <p id="user"></p>
+      <div class="button">
+        <button id="logout">Log out</button>
+        <span class="info"><a href="http://imgur.com/account/settings/apps">revoke access</a></span>
+      </div>
+    </section>
+    <section id="not-available" style="display: none;">
+      <p>imgur servers aren't available right now</p>
+    </section>
+    <section id="upload-behaviour">
+      <h3>Upload Behavior</h3>
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" id="to_direct_link" />
+          <span>Open direct link to image instead of imgur page</span>
+        </label>
+      </div>
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" id="to_clipboard" />
+          <span>Copy image url to clipboard</span>
+        </label>
+      </div>
+      <div class="checkbox" style="display: none;">
+        <label>
+          <input type="checkbox" id="scale_capture"/>
+          <span>Rescale area captures</span>
+        </label>
+      </div>
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" disabled id="incognito" />
+          <span>Upload images into your imgur account while in incognito mode</span>
+        </label>
+      </div>
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" disabled id="to_albums" />
+          <span>Upload images into albums</span>
+        </label>
+      </div>
+    </section>
+    <section id="album-options" style="display: none">
+      <h3>Album Selection</h3>
+      <p>Select the albums you would like to appear in the dropdown</p>
+      <div id="album-list"></div>
+      <p>It may take some time for changes made to your albums to be reflected here</p>
+    </section>
+  </div>
+  <div id="about" style="display: none">
+    <p>Imgur Uploader is by <a href="https://twitter.com/dog_irl">graeme phillips</a> and is in the public domain.
+  </div>
+</body>
+</html>
