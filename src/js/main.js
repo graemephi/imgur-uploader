@@ -59,21 +59,23 @@ function uploadImage(image, albumId) {
 }
 
 function open(data) {
-	if (Store.to_clipboard && Store.clipboard_only) {
-		notify("Image uploaded", "The URL has been copied to your clipboard.");
-	} else if (Store.to_direct_link) {
-		chrome.tabs.create({ url: data.link.replace("http:", "https:"), selected: true });
-	} else {
-		chrome.tabs.create({ url: 'https://imgur.com/' + data.id, selected: true });
-	}
+	let imageLink = data.link.replace("http:", "https:");
 
 	if (Store.to_clipboard) {
 		let textAreaElement = document.createElement('textarea');
 		document.body.appendChild(textAreaElement);
-		textAreaElement.value = data.link;
+		textAreaElement.value = imageLink;
 		textAreaElement.select();
 		document.execCommand('copy', false, null);
 		document.body.removeChild(textAreaElement);
+	}
+
+	if (Store.to_clipboard && Store.clipboard_only) {
+		notify("Image uploaded", "The URL has been copied to your clipboard.");
+	} else if (Store.to_direct_link) {
+		chrome.tabs.create({ url: imageLink, selected: true });
+	} else {
+		chrome.tabs.create({ url: 'https://imgur.com/' + data.id, selected: true });
 	}
 }
 
