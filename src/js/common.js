@@ -47,8 +47,12 @@ function SynchronousStore() {
         saveTimeoutId = setTimeout(_ => {
             chrome.storage.sync.set(pending.sync);
             chrome.storage.local.set(pending.local);
+
+            chrome.runtime.sendMessage({ type: "store update", info: { sync: pending.sync, local: pending.local } });
+
             pending.sync = {};
             pending.local = {};
+
             saveTimeoutId = null;
         });
     }
@@ -117,7 +121,26 @@ function SynchronousStore() {
     // Register chrome events that require storage to be available.
     this.listener = (event, listener) => {
         event.addListener((...args) => this.onLoad(listener, args));
-    }
+    };
+
+    // In principle we want there to be only one store. We can't share a
+    // singleton around from the background page, because it gets loaded and
+    // unloaded frequently. The options page may need the store but with no
+    // background page store available. Instead, we have to notify all extant
+    // Stores of updates.  If we don't do this, the background page's options
+    // will be incorrect until it is unloaded (potentially a long time). This
+    // complexity is really pushing the limit of what I'd consider reasonable
+    // for this kind of thing.
+    //
+    // But I really do hate having to hit some async api in order to check a single
+    // configuration value
+
+    chrome.runtime.onMessage.addListener(message => {
+        if (message.type === "store update") {
+            Object.assign(sync, message.info.sync);
+            Object.assign(local, message.info.local);
+        }
+    });
 
     Object.freeze(this);
 }

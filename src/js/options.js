@@ -23,21 +23,7 @@ function authenticationRedirect() {
 	return false;
 }
 
-var Store = (_ => {
-	let backgroundPage = chrome.extension.getBackgroundPage();
-
-	if (backgroundPage) {
-		return backgroundPage.getStore();
-	} else {
-		// This is unpleasant. Maybe defeats the whole purpose. Oh well
-
-		chrome.runtime.sendMessage({ type: "wakeup" }, _ => {
-			Store = chrome.extension.getBackgroundPage().getStore();
-		});
-
-		return new SynchronousStore();
-	}
-})();
+var Store = new SynchronousStore(true);
 
 if (!authenticationRedirect()) {
 	window.onload = _ => Store.onLoad(wire);
