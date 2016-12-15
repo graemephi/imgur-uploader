@@ -51,15 +51,17 @@ function uploadImage(image, albumId) {
 			console.error("Failed upload", error.info || error);
 
 			if (error.info && error.info.url === Imgur_OAuth2URL && error.info.status === 403) {
-				return notify(`Do not have permission to upload as ${Store.username}.`);
+				return notify("Upload Failure", `Do not have permission to upload as ${Store.username}.`);
 			} else {
-				return notify("That didn't work. You might want to try again.");
+				return notify("Upload Failure", "That didn't work. You might want to try again.");
 			}
 		});
 }
 
 function open(data) {
-	if (Store.to_direct_link) {
+	if (Store.to_clipboard && Store.clipboard_only) {
+		notify("Image uploaded", "The URL has been copied to your clipboard.");
+	} else if (Store.to_direct_link) {
 		chrome.tabs.create({ url: data.link.replace("http:", "https:"), selected: true });
 	} else {
 		chrome.tabs.create({ url: 'https://imgur.com/' + data.id, selected: true });
@@ -75,17 +77,16 @@ function open(data) {
 	}
 }
 
-function notify(message) {
+function notify(title, message) {
 	let options = {
 		type: "basic",
-		title: "Upload Failure",
+		title: title,
 		message: message,
 		iconUrl: "img/logo.png"
 	};
 
 	return new Promise(resolve => chrome.notifications.create("", options, resolve));
 }
-
 
 Store.listener(chrome.runtime.onInstalled, details => {
 	if (details.reason == "install") {

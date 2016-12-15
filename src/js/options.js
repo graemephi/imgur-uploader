@@ -58,6 +58,11 @@ function wire() {
 
 	if (Store.to_clipboard) {
 		document.getElementById('to_clipboard').checked = true;
+		document.getElementById('clipboard_only').removeAttribute("disabled");
+	}
+
+	if (Store.clipboard_only) {
+		document.getElementById('clipboard_only').checked = true;
 	}
 
 	if (Store.to_albums) {
@@ -87,6 +92,16 @@ function wire() {
 
 	document.getElementById('to_clipboard').addEventListener('change', function (event) {
 		Store.to_clipboard = event.target.checked;
+
+		if (Store.to_clipboard) {
+			document.getElementById('clipboard_only').removeAttribute("disabled");
+		} else {
+			document.getElementById('clipboard_only').setAttribute("disabled", "disabled");
+		}
+	});
+
+	document.getElementById('clipboard_only').addEventListener('change', function (event) {
+		Store.clipboard_only = event.target.checked;
 	});
 
 	document.getElementById('scale_capture').addEventListener('change', function (event) {
