@@ -16,8 +16,8 @@
 		return {
 			x: (x1 < x2) ? x1 : x2,
 			y: (y1 < y2) ? y1 : y2,
-			width: Math.abs(x2 - x1) - 1,
-			height: Math.abs(y2 - y1) - 1,
+			width: Math.max(0, Math.abs(x2 - x1) - 1),
+			height: Math.max(0, Math.abs(y2 - y1) - 1),
 		};
 	}
 
@@ -73,7 +73,7 @@
 
 			rectElement.style.display = "none";
 
-			requestAnimationFrame(_ => setTimeout(_ => chrome.runtime.sendMessage(null, { type: "capture ready", rect: rect }, dispose)));
+			setTimeout(_ => requestAnimationFrame(_ => chrome.runtime.sendMessage(null, { type: "capture ready", rect: rect }, dispose)));
 		}
 	}
 

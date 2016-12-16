@@ -1,5 +1,7 @@
 "use strict";
 
+// TODO: check uploading and dispalying album page
+
 var	captureAreaAlbumId;
 
 const Store = new SynchronousStore();
@@ -46,7 +48,7 @@ function uploadImage(image, albumId) {
 					}
 				});
 		})
-		.then(response => open(response.data))
+		.then(response => open(response.data, albumId))
 		.catch(error => {
 			console.error("Failed upload", error.info || error);
 
@@ -58,7 +60,7 @@ function uploadImage(image, albumId) {
 		});
 }
 
-function open(data) {
+function open(data, albumId) {
 	let imageLink = data.link.replace("http:", "https:");
 
 	if (Store.to_clipboard) {
@@ -73,9 +75,78 @@ function open(data) {
 	if (Store.to_clipboard && Store.clipboard_only) {
 		notify("Image uploaded", "The URL has been copied to your clipboard.");
 	} else if (Store.to_direct_link) {
-		chrome.tabs.create({ url: imageLink, selected: !Store.no_focus });
+		chrome.tabs.create({ url: imageLink, active: !Store.no_focus });
+	} else if (albumId) {
+		let imageId = /^([a-zA-Z0-9]+)$/.exec(data.id)[0];
+
+		let albumUrl = `https://imgur.com/a/${albumId}`;
+		let albumUrlWithHash = albumUrl + "#" + imageId;
+
+		chrome.tabs.query({ url: albumUrl + "*" }, tabs => {
+			let tab = tabs[0];
+
+			// If we want to show the image in its album we have to do this song and dance
+			// where the page will load images as it scrolls down
+			let scrollToImage =
+				`var bail = 0;
+
+				function kill() {
+					bail = 999;
+				}
+
+				function centerElement(element) {
+					window.scroll(0, (element.offsetTop + element.offsetHeight / 2) - (window.innerHeight / 2));
+				}
+
+				// Frickin infinite scrolling, my god
+				function scrollToImage() {
+					let element = document.getElementById("${imageId}");
+
+					if (!element) {
+						bail++;
+
+						if (bail < 64) {
+							window.scroll(0, window.scrollY + ((window.scrollY + document.body.clientHeight) / 8));
+
+							setTimeout(scrollToImage, 64);
+						}
+					} else {
+						let imageElement = element.querySelector("img");
+
+						if (imageElement.complete) {
+							centerElement(element);
+						} else {
+							imageElement.addEventListener("load", _ => centerElement(element));
+						}
+
+						window.removeEventListener("wheel", kill);
+					}
+				}
+
+				window.addEventListener("wheel", kill);
+
+				if (document.readyState === "complete") {
+					scrollToImage();
+				} else {
+					window.addEventListener("load", scrollToImage);
+				}`;
+
+			if (tab) {
+				chrome.tabs.reload(tab.id, { }, _ => {
+					chrome.tabs.executeScript(tab.id, { code: scrollToImage }, _ => {
+						if (!Store.no_focus) {
+							 chrome.tabs.update(tab.id, { active: true });
+						}
+					});
+				});
+			} else {
+				chrome.tabs.create({ url: albumUrlWithHash, active: !Store.no_focus }, newTab => {
+					chrome.tabs.executeScript(newTab.id, { code: scrollToImage });
+				});
+			}
+		});
 	} else {
-		chrome.tabs.create({ url: 'https://imgur.com/' + data.id, selected: !Store.no_focus });
+		chrome.tabs.create({ url: 'https://imgur.com/' + data.id, active: !Store.no_focus });
 	}
 }
 
