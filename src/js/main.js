@@ -1,7 +1,5 @@
 "use strict";
 
-// TODO: check uploading and dispalying album page
-
 var	captureAreaAlbumId;
 
 const Store = new SynchronousStore();
