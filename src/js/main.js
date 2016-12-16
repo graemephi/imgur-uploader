@@ -107,6 +107,8 @@ function open(data, albumId) {
 							window.scroll(0, window.scrollY + ((window.scrollY + document.body.clientHeight) / 8));
 
 							setTimeout(scrollToImage, 64);
+						} else {
+							window.removeEventListener("wheel", kill);
 						}
 					} else {
 						let imageElement = element.querySelector("img");
