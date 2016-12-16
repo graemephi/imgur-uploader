@@ -113,7 +113,7 @@
 		height: 100%;
 		width: 100%;
 		background: transparent;
-		z-index: 214748364;
+		z-index: 2147483647;
 		border: 0;
 		position: fixed;
 		left: 0;
