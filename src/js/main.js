@@ -217,36 +217,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 Store.listener(chrome.runtime.onMessage, message => {
 	if (message.type === "capture ready") {
-		chrome.tabs.captureVisibleTab(null, { format: 'png' }, imageData => {
-			let canvas = document.createElement('canvas');
-			let context = canvas.getContext('2d');
+		chrome.tabs.getZoom(zoom => {
+			chrome.tabs.captureVisibleTab(null, { format: 'png' }, imageData => {
+				let canvas = document.createElement('canvas');
+				let context = canvas.getContext('2d');
+				let pixelRatio = zoom * window.devicePixelRatio;
 
-			var width = Math.round(message.rect.width * window.devicePixelRatio);
-			var height = Math.round(message.rect.height * window.devicePixelRatio);
-			var x = Math.round(message.rect.x * window.devicePixelRatio);
-			var y = Math.round(message.rect.y * window.devicePixelRatio);
+				let width = Math.round(message.rect.width * pixelRatio);
+				let height = Math.round(message.rect.height * pixelRatio);
+				let x = Math.round(message.rect.x * pixelRatio);
+				let y = Math.round(message.rect.y * pixelRatio);
 
-			if (width > 0 && height > 0) {
-				if (Store.scale_capture) {
-					canvas.width = message.rect.width;
-					canvas.height = message.rect.height;
-				} else {
-					canvas.width = width;
-					canvas.height = height;
+				if (width > 0 && height > 0) {
+					if (Store.scale_capture) {
+						canvas.width = message.rect.width;
+						canvas.height = message.rect.height;
+					} else {
+						canvas.width = width;
+						canvas.height = height;
+					}
+
+					let imageElement = new Image();
+					imageElement.src = imageData;
+					imageElement.onload = _ => {
+						context.drawImage(imageElement, x, y, width, height, 0, 0, canvas.width, canvas.height);
+
+						let dataUrl = encodeURIComponent(canvas.toDataURL('image/png').split(',')[1]);
+						assert(dataUrl);
+
+						uploadImage(dataUrl, captureAreaAlbumId);
+						captureAreaAlbumId = null;
+					};
 				}
-
-				let imageElement = new Image();
-				imageElement.src = imageData;
-				imageElement.onload = _ => {
-					context.drawImage(imageElement, x, y, width, height, 0, 0, canvas.width, canvas.height);
-
-					let dataUrl = encodeURIComponent(canvas.toDataURL('image/png').split(',')[1]);
-					assert(dataUrl);
-
-					uploadImage(dataUrl, captureAreaAlbumId);
-					captureAreaAlbumId = null;
-				};
-			};
+			});
 		});
 	}
 });
