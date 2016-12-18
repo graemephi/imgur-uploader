@@ -22,7 +22,7 @@ function imageUploadRequest(image, anonymous) {
 function uploadImage(image, albumId) {
 	return new Promise(resolve => chrome.windows.getCurrent(resolve))
 		.then(currentWindow => {
-			if (Store.valid_until < Date.now()) {
+			if (Store.authorized && Store.valid_until < Date.now()) {
 				return refreshToken().then(_ => currentWindow);
 			}
 
@@ -39,7 +39,7 @@ function uploadImage(image, albumId) {
 
 			return imageUploadRequest(body, anonymous)
 				.catch(error => {
-					if (error.hasJSONResponse && error.info.status === 403) {
+					if (Store.authorized && error.hasJSONResponse && error.info.status === 403) {
 						return refreshToken().then(_ => imageUploadRequest(body, anonymous));
 					} else {
 						return Promise.reject(error);
@@ -50,7 +50,7 @@ function uploadImage(image, albumId) {
 		.catch(error => {
 			console.error("Failed upload", error.info || error);
 
-			if (error.info && error.info.url === Imgur_OAuth2URL && error.info.status === 403) {
+			if (Store.authorized && error.info && error.info.url === Imgur_OAuth2URL && error.info.status === 403) {
 				return notify("Upload Failure", `Do not have permission to upload as ${Store.username}.`);
 			} else {
 				return notify("Upload Failure", "That didn't work. You might want to try again.");

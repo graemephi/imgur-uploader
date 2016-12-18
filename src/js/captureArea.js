@@ -16,8 +16,8 @@
 		return {
 			x: (x1 < x2) ? x1 : x2,
 			y: (y1 < y2) ? y1 : y2,
-			width: Math.max(0, Math.abs(x2 - x1) - 1),
-			height: Math.max(0, Math.abs(y2 - y1) - 1),
+			width: Math.abs(x2 - x1),
+			height: Math.abs(y2 - y1),
 		};
 	}
 
@@ -33,20 +33,22 @@
 		}
 
 		animationFrameRequest = requestAnimationFrame(_ => {
-			var rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
+			let rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
 
 			if (selecting) {
-				var rectElement = iframe.contentDocument.querySelector("rect");
+				let rectElement = iframe.contentDocument.querySelector("rect");
+				let drawnWidth = Math.max(0, rect.width - 1);
+				let drawnHeight = Math.max(0, rect.height - 1);
 
 				rectElement.setAttribute("x", `${rect.x}px`);
 				rectElement.setAttribute("y", `${rect.y}px`);
-				rectElement.setAttribute("width", `${rect.width}px`);
-				rectElement.setAttribute("height", `${rect.height}px`);
+				rectElement.setAttribute("width", `${drawnWidth}px`);
+				rectElement.setAttribute("height", `${drawnHeight}px`);
 			}
 
-			var x = Math.max(clickX, event.clientX);
-			var y = Math.min(clickY, event.clientY);
-			var distanceFromTopRightCorner = Math.sqrt(Math.pow(x - iframe.clientWidth, 2) + (y * y));
+			let x = Math.max(clickX, event.clientX);
+			let y = Math.min(clickY, event.clientY);
+			let distanceFromTopRightCorner = Math.sqrt(Math.pow(x - iframe.clientWidth, 2) + (y * y));
 
 			if (distanceFromTopRightCorner > 150) {
 				icon.style.opacity = 1;
@@ -66,11 +68,10 @@
 
 	function onMouseUp(event) {
 		if (selecting) {
-			var rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
-			var rectElement =  iframe.contentDocument.querySelector("rect");
-			rect.width++;
-			rect.height++;
+			let rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
+			let svgElement = iframe.contentDocument.querySelector("svg");
 
+			let rectElement = iframe.contentDocument.querySelector("rect");
 			rectElement.style.display = "none";
 
 			setTimeout(_ => requestAnimationFrame(_ => chrome.runtime.sendMessage(null, { type: "capture ready", rect: rect }, dispose)));

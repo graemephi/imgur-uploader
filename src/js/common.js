@@ -146,7 +146,7 @@ function SynchronousStore() {
 }
 
 function isAnonymous(isIncognito) {
-    return Store.authorized && (isIncognito && !Store.incognito);
+    return !Store.authorized || (isIncognito && !Store.incognito);
 }
 
 function setAccessToken(token, expiresIn) {
