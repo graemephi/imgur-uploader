@@ -71,9 +71,11 @@
 			let rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
 			let rectElement = iframe.contentDocument.querySelector("rect");
 
-			rectElement.style.display = "none";
-
-			setTimeout(_ => requestAnimationFrame(_ => chrome.runtime.sendMessage(null, { type: "capture ready", rect: rect }, dispose)));
+			rectElement.classList.add("removing");
+			rectElement.addEventListener("transitionend", _ => {
+				chrome.runtime.sendMessage(null, { type: "capture ready", rect: rect });
+				dispose();
+			});
 		}
 	}
 

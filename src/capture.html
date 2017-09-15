@@ -15,6 +15,13 @@
       shape-rendering: crispEdges
     }
 
+    .area.removing {
+      transition-property: opacity;
+      transition-duration: 0.017s; /* Slightly more than one frame at 60Hz */
+      transition-timing-function: step-start;
+      opacity: 0;
+    }
+
     .icon {
       position: fixed;
       top: 5px;
