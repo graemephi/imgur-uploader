@@ -4,8 +4,39 @@ var	captureAreaAlbumId;
 
 const Store = new SynchronousStore();
 
-function getStore() {
-	return Store;
+function encodeURL(url) {
+	if (url.startsWith("data:image")) {
+		url = url.split(',')[1];
+	}
+
+	return encodeURIComponent(url);
+}
+
+function urlToBase64(url) {
+	let canvas = document.createElement('canvas');
+	let context = canvas.getContext('2d');
+
+	let imageElement = new Image();
+	imageElement.src = url;
+
+	return new Promise((resolve, reject) => {
+		imageElement.onload = _ => {
+			try {
+				let width = imageElement.width;
+				let height = imageElement.height;
+				canvas.width = width;
+				canvas.height = height;
+				context.drawImage(imageElement, 0, 0, width, height, 0, 0, canvas.width, canvas.height);
+
+				let dataUrl = canvas.toDataURL('image/png');
+				assert(dataUrl);
+
+				resolve(dataUrl);
+			} catch (e) {
+				reject(e || new Error("Failed to create data URL from " + url));
+			}
+		};
+	});
 }
 
 function imageUploadRequest(image, anonymous) {
@@ -19,7 +50,7 @@ function imageUploadRequest(image, anonymous) {
 		});
 }
 
-function uploadImage(image, albumId) {
+function uploadImage(image, albumId, isRetry) {
 	return new Promise(resolve => chrome.windows.getCurrent(resolve))
 		.then(currentWindow => {
 			if (Store.authorized && Store.valid_until < Date.now()) {
@@ -31,7 +62,7 @@ function uploadImage(image, albumId) {
 		.then(currentWindow => {
 			let anonymous = isAnonymous(currentWindow/incognito);
 
-			var body = `image=${image}`;
+			var body = `image=${encodeURL(image)}`;
 
 			if (albumId) {
 				body += `&album=${albumId}`;
@@ -52,6 +83,8 @@ function uploadImage(image, albumId) {
 
 			if (Store.authorized && error.info && error.info.url === Imgur_OAuth2URL && error.info.status === 403) {
 				return notify("Upload Failure", `Do not have permission to upload as ${Store.username}.`);
+			} else if (!isRetry) {
+				return urlToBase64(image).then(data => uploadImage(data, albumId, true));
 			} else {
 				return notify("Upload Failure", "That didn't work. You might want to try again.");
 			}
@@ -200,7 +233,7 @@ Store.listener(chrome.contextMenus.onClicked, (info, tab) => {
 		captureAreaAlbumId = uploadType[1];
 		chrome.tabs.executeScript(tab.id, { file: 'js/captureArea.js' });
 	} else if (uploadType[0] === 'rehost') {
-		uploadImage(encodeURIComponent(info.srcUrl), uploadType[1]);
+		uploadImage(info.srcUrl, uploadType[1]);
 	}
 });
 
@@ -242,7 +275,7 @@ Store.listener(chrome.runtime.onMessage, message => {
 					imageElement.onload = _ => {
 						context.drawImage(imageElement, x, y, width, height, 0, 0, canvas.width, canvas.height);
 
-						let dataUrl = encodeURIComponent(canvas.toDataURL('image/png').split(',')[1]);
+						let dataUrl = canvas.toDataURL('image/png');
 						assert(dataUrl);
 
 						uploadImage(dataUrl, captureAreaAlbumId);

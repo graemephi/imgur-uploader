@@ -1,6 +1,12 @@
 ﻿(function () {
 	"use strict";
 
+	var top;
+	var left;
+	var bottom;
+	var right;
+	var area;
+
 	function clamp(x, min, max) {
 		return (x < min) ? min
 			 : (x > max) ? max
@@ -27,6 +33,21 @@
 		selecting = true;
 	}
 
+	function setRect(rect, x, y, width, height) {
+		rect.setAttribute("x", x);
+		rect.setAttribute("y", y);
+		rect.setAttribute("width", width);
+		rect.setAttribute("height", height);
+	}
+
+	function implicitRect(x, y, w, h) {
+		setRect(top, 0, 0, iframe.clientWidth, y);
+		setRect(left, 0, y, x, h);
+		setRect(bottom, 0, y + h, iframe.clientWidth, iframe.clientHeight - (y + h));
+		setRect(right, x + w, y, iframe.clientWidth - (x + w), h);
+		setRect(area, x, y, w + 1, h + 1);
+	}
+
 	function onMouseMove(event) {
 		if (animationFrameRequest) {
 			cancelAnimationFrame(animationFrameRequest);
@@ -36,14 +57,10 @@
 			let rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
 
 			if (selecting) {
-				let rectElement = iframe.contentDocument.querySelector("rect");
-				let drawnWidth = Math.max(0, rect.width - 1);
-				let drawnHeight = Math.max(0, rect.height - 1);
+				let drawnWidth = Math.max(0, rect.width);
+				let drawnHeight = Math.max(0, rect.height);
 
-				rectElement.setAttribute("x", `${rect.x}px`);
-				rectElement.setAttribute("y", `${rect.y}px`);
-				rectElement.setAttribute("width", `${drawnWidth}px`);
-				rectElement.setAttribute("height", `${drawnHeight}px`);
+				implicitRect(rect.x, rect.y, drawnWidth, drawnHeight);
 			}
 
 			let x = Math.max(clickX, event.clientX);
@@ -69,13 +86,8 @@
 	function onMouseUp(event) {
 		if (selecting) {
 			let rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
-			let rectElement = iframe.contentDocument.querySelector("rect");
-
-			rectElement.classList.add("removing");
-			rectElement.addEventListener("transitionend", _ => {
-				chrome.runtime.sendMessage(null, { type: "capture ready", rect: rect });
-				dispose();
-			});
+			chrome.runtime.sendMessage(null, { type: "capture ready", rect: rect });
+			dispose();
 		}
 	}
 
@@ -124,6 +136,7 @@
 	`);
 
 	iframe.addEventListener("load", _ => {
+
 		chrome.runtime.sendMessage(null, { type: "capture init" }, response => {
 			let parsedDocument = (new DOMParser()).parseFromString(response.html, "text/html");
 			iframe.contentDocument.replaceChild(iframe.contentDocument.adoptNode(parsedDocument.documentElement), iframe.contentDocument.documentElement);
@@ -136,6 +149,12 @@
 			iframe.contentWindow.addEventListener("mousedown", onMouseDown);
 			iframe.contentWindow.addEventListener("mouseup", onMouseUp);
 			iframe.contentWindow.addEventListener("mousemove", onMouseMove);
+
+			top = iframe.contentDocument.getElementById("top");
+			left = iframe.contentDocument.getElementById("left");
+			bottom = iframe.contentDocument.getElementById("bottom");
+			right = iframe.contentDocument.getElementById("right");
+			area = iframe.contentDocument.getElementById("area");
 		});
 	});
 
