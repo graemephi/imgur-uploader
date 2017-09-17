@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="overflow: hidden">
 <head>
   <meta charset="utf-8" />
   <style>
@@ -17,11 +17,14 @@
 
     #area {
       position: absolute;
-      width: 1px;
-      height: 1px;
+      width: 0px;
+      height: 0px;
       opacity: 0;
-      transform-origin: 0px 0px;
-      box-shadow: 0px 0px 0px 4192px rgba(0, 0, 0, 0.33);
+      top: 0px;
+      left: 0px;
+      box-shadow: 0px 0px 0px 8192px rgba(0, 0, 0, 0.5),
+       0px 0px 0px 1px rgba(12, 12, 12, 0.6),
+       0px 0px 36px 6px rgba(0, 0, 0, 0.2);
     }
 
     .icon {

@@ -1,12 +1,10 @@
 ﻿(function () {
 	"use strict";
 
-	var area;
-
 	function clamp(x, min, max) {
 		return (x < min) ? min
 			 : (x > max) ? max
-			 : 				x;
+			 : 				 x;
 	}
 
 	function rectBounds(x1, y1, x2, y2) {
@@ -40,10 +38,15 @@
 			let rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
 
 			if (selecting) {
+				let x = rect.x;
+				let y = rect.y;
 				let drawnWidth = Math.max(1, rect.width);
 				let drawnHeight = Math.max(1, rect.height);
 
-				area.style.transform = `translate(${rect.x}px, ${rect.y}px) scale(${drawnWidth}, ${drawnHeight})`;
+				area.style.left = x;
+				area.style.top = y;
+				area.style.width = drawnWidth;
+				area.style.height = drawnHeight;
 			}
 
 			let x = Math.max(clickX, event.clientX);
@@ -99,6 +102,7 @@
 
 	let iframe = document.createElement("iframe");
 	var icon = null;
+	var area = null;
 
 	var selecting = false;
 	var clickX = 0;
