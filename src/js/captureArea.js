@@ -1,10 +1,6 @@
 ﻿(function () {
 	"use strict";
 
-	var top;
-	var left;
-	var bottom;
-	var right;
 	var area;
 
 	function clamp(x, min, max) {
@@ -31,21 +27,8 @@
 		clickX = event.clientX;
 		clickY = event.clientY;
 		selecting = true;
-	}
 
-	function setRect(rect, x, y, width, height) {
-		rect.setAttribute("x", x);
-		rect.setAttribute("y", y);
-		rect.setAttribute("width", width);
-		rect.setAttribute("height", height);
-	}
-
-	function implicitRect(x, y, w, h) {
-		setRect(top, 0, 0, iframe.clientWidth, y);
-		setRect(left, 0, y, x, h);
-		setRect(bottom, 0, y + h, iframe.clientWidth, iframe.clientHeight - (y + h));
-		setRect(right, x + w, y, iframe.clientWidth - (x + w), h);
-		setRect(area, x, y, w + 1, h + 1);
+		area.style.opacity = 1;
 	}
 
 	function onMouseMove(event) {
@@ -57,10 +40,10 @@
 			let rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
 
 			if (selecting) {
-				let drawnWidth = Math.max(0, rect.width);
-				let drawnHeight = Math.max(0, rect.height);
+				let drawnWidth = Math.max(1, rect.width);
+				let drawnHeight = Math.max(1, rect.height);
 
-				implicitRect(rect.x, rect.y, drawnWidth, drawnHeight);
+				area.style.transform = `translate(${rect.x}px, ${rect.y}px) scale(${drawnWidth}, ${drawnHeight})`;
 			}
 
 			let x = Math.max(clickX, event.clientX);
@@ -136,7 +119,6 @@
 	`);
 
 	iframe.addEventListener("load", _ => {
-
 		chrome.runtime.sendMessage(null, { type: "capture init" }, response => {
 			let parsedDocument = (new DOMParser()).parseFromString(response.html, "text/html");
 			iframe.contentDocument.replaceChild(iframe.contentDocument.adoptNode(parsedDocument.documentElement), iframe.contentDocument.documentElement);
@@ -150,10 +132,6 @@
 			iframe.contentWindow.addEventListener("mouseup", onMouseUp);
 			iframe.contentWindow.addEventListener("mousemove", onMouseMove);
 
-			top = iframe.contentDocument.getElementById("top");
-			left = iframe.contentDocument.getElementById("left");
-			bottom = iframe.contentDocument.getElementById("bottom");
-			right = iframe.contentDocument.getElementById("right");
 			area = iframe.contentDocument.getElementById("area");
 		});
 	});
