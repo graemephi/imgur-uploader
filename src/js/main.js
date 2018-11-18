@@ -60,7 +60,7 @@ function uploadImage(image, albumId, isRetry) {
 			return currentWindow;
 		})
 		.then(currentWindow => {
-			let anonymous = isAnonymous(currentWindow/incognito);
+			let anonymous = isAnonymous(currentWindow.incognito);
 
 			var body = `image=${encodeURL(image)}`;
 
