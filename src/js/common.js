@@ -4,6 +4,19 @@ const client_id = "0c0196a10c50197";
 const client_secret = null;
 
 if (!client_secret) {
+    /*
+    * Hello
+    *
+    * client_secret is required for OAuth2--so, if you plan on linking to
+    * user accounts. If you don't, remove this check and hack away.
+    *
+    * There's no particular value or secrecy attached to the client_id beyond
+    * potentially inconveniencing This Humble Repo Owner. Same with the secret,
+    * but once you have user auth's you really want that to be managing this
+    * stuff yourself.
+    *
+    * graeme
+    */
     throw new Error("Missing imgur api keys");
 }
 
