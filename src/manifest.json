@@ -2,19 +2,18 @@
 	"manifest_version" : 2,
 	"name": "imgur Uploader",
 	"description": "Right-click uploading of images and screenshots anonymously or to your imgur account.",
-	"version": "2.2",
+	"version": "2.3",
 	"icons": {
 		"16": "img/logo_16.png",
 		"48": "img/logo_48.png",
 		"128": "img/logo.png"
 	},
 	"permissions": [
-		"contextMenus",
-		"tabs",
-		"notifications",
-		"storage",
+		"activeTab",
 		"clipboardWrite",
-		"<all_urls>"
+		"contextMenus",
+		"notifications",
+		"storage"
 	],
 	"background": {
 		"scripts": [
