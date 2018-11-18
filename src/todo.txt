@@ -1,2 +1,0 @@
-Lazy
-- Maybe split authorized/unauthorized upload code paths
