@@ -1,5 +1,2 @@
 Lazy
-- Null credentials when logged out
 - Maybe split authorized/unauthorized upload code paths
-- better error message on 'invalid access token' to get user to re-auth
-- use activeTab permission isntead of <all_urls>
