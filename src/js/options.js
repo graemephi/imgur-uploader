@@ -81,7 +81,7 @@ function wire() {
 	});
 
 	document.getElementById('logout').addEventListener('click', function (event) {
-   		Store.authorized = false;
+		setUnauthorized();
 		displayUnauthorized();
 	});
 
@@ -162,6 +162,13 @@ function displayAuthorized(username) {
 	populateAlbumMenu();
 }
 
+function setUnauthorized() {
+	Store.authorized = false;
+	Store.username = null;
+	Store.refresh_token = null;
+	Store.access_token = null;
+}
+
 function displayUnauthorized() {
 	var authButton = document.getElementById('auth-button');
 	authButton.disabled = false;
@@ -192,7 +199,7 @@ function checkAndDisplayAuthorization() {
 	})
 	.catch(error => {
 	    if (error.hasJSONResponse) {
-	        Store.authorized = false;
+			setUnauthorized();
 	        console.error("Lost authorization", error.info);
 
 	        return Auth_Failure;
