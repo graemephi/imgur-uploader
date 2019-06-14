@@ -275,7 +275,7 @@ function request(url) {
                         var data;
 
                         if (typeof(self.data) === "object") {
-                            data = new FormData(0);
+                            data = new FormData();
 
                             Object.keys(self.data).forEach(key => {
                                 data.append(key, self.data[key]);
