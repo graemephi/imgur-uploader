@@ -3,6 +3,8 @@
 
 # Changelog
 
+Version 2.3.1: Fix bug caused by improper use of a browser API, which are more strict nowadays.
+
 Version 2.3: Relaxed permission requirements as made possible by updates to Chrome's extension API (or, possibly, just their documentation).
 
 Version 2.2: Inverted the selection rectangle. This won't ever cause the selection rectangle to be in the captured image, which affected some users. Also, uploading images should work with more kinds of images now, including data urls and SVGs.
