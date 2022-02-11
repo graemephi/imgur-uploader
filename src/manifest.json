@@ -1,8 +1,8 @@
 {
-	"manifest_version" : 2,
+	"manifest_version" : 3,
 	"name": "imgur Uploader",
 	"description": "Right-click uploading of images and screenshots anonymously or to your imgur account.",
-	"version": "2.3.1",
+	"version": "2.4.0",
 	"icons": {
 		"16": "img/logo_16.png",
 		"48": "img/logo_48.png",
@@ -10,23 +10,24 @@
 	},
 	"permissions": [
 		"activeTab",
-		"clipboardWrite",
 		"contextMenus",
 		"notifications",
-		"storage"
+		"storage",
+		"scripting"
+	],
+	"optional_permissions": [
+		"clipboardWrite"
 	],
 	"background": {
-		"scripts": [
-			"js/common.js", "js/main.js"
-		],
-		"persistent": false
+		"service_worker": "background.js",
+		"type": "module"
 	},
-	"web_accessible_resources": [
-		"img/logo_48.png",
-		"options.html"
-	],
 	"options_ui": {
 		"page": "options.html",
-		"chrome_style": true
-	}
+		"open_in_tab": false
+	},
+	"web_accessible_resources": [{
+		"resources": ["options.html"],
+		"matches": ["https://api.imgur.com/*"]
+	}]
 }

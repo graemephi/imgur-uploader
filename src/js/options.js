@@ -1,5 +1,25 @@
 "use strict";
 
+import {
+	client_id,
+	client_secret,
+	syncStoreKeys,
+	localStoreKeys,
+	Auth_Success,
+	Auth_None,
+	Auth_Failure,
+	Auth_Unavailable,
+	Imgur_OAuth2URL,
+	SynchronousStore,
+	isAnonymous,
+	setAccessToken,
+	assert,
+	request,
+	refreshToken,
+	populateAlbumMenu,
+	resetMenu,
+} from './common.js'
+
 function authenticationRedirect() {
 	let queryParams = {};
 	let queryString = location.hash.substring(1);
@@ -23,7 +43,7 @@ function authenticationRedirect() {
 	return false;
 }
 
-var Store = new SynchronousStore();
+var Store = SynchronousStore();
 
 if (!authenticationRedirect()) {
 	window.onload = _ => Store.onLoad(wire);
@@ -188,7 +208,7 @@ function checkAndDisplayAuthorization() {
 	// If we have auth details we display it first and then check it is still
 	// valid to avoid an ugly repaint in the common case
 
-	return new Promise(resolve => resolve()).then(_ => {
+	return Promise.resolve().then(_ => {
 		if (Store.authorized && Store.access_token && Store.refresh_token && Store.username) {
 			displayAuthorized(Store.username);
 
@@ -197,18 +217,17 @@ function checkAndDisplayAuthorization() {
 			return Auth_None;
 		}
 	})
-	.catch(error => {
-	    if (error.hasJSONResponse) {
+	.catch(error => error.json(_ => {
 			setUnauthorized();
 	        console.error("Lost authorization", error.info);
 
 	        return Auth_Failure;
-	    } else {
+	    }, _ => {
 	        console.error("Failed to refresh token", error);
 
 	        return Auth_Unavailable;
 	    }
- 	})
+ 	))
  	.then(result => {
  		switch (result) {
  			case Auth_Success: {

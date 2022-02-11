@@ -1,7 +1,7 @@
 "use strict";
 
-const client_id = "0c0196a10c50197";
-const client_secret = null;
+export const client_id = "0c0196a10c50197";
+export const client_secret = null;
 
 if (!client_secret) {
     /*
@@ -12,7 +12,7 @@ if (!client_secret) {
     *
     * There's no particular value or secrecy attached to the client_id beyond
     * potentially inconveniencing This Humble Repo Owner. Same with the secret,
-    * but once you have user auth's you really want that to be managing this
+    * but once you have user auth's you really want to be managing this
     * stuff yourself.
     *
     * graeme
@@ -20,26 +20,30 @@ if (!client_secret) {
     throw new Error("Missing imgur api keys");
 }
 
-const syncStoreKeys = ["incognito", "to_direct_link", "no_focus", "to_clipboard", "clipboard_only", "scale_capture", "to_albums", "albums", "username", "authorized", "refresh_token"];
-const localStoreKeys = ["access_token", "valid_until"];
+export const syncStoreKeys = ["incognito", "to_direct_link", "no_focus", "to_clipboard", "clipboard_only", "scale_capture", "to_albums", "albums", "username", "authorized", "refresh_token"];
+export const localStoreKeys = ["access_token", "valid_until"];
 
-const Auth_Success = 1;
-const Auth_None = 0;
-const Auth_Failure = -1;
-const Auth_Unavailable = -2;
+export const Auth_Success = 1;
+export const Auth_None = 0;
+export const Auth_Failure = -1;
+export const Auth_Unavailable = -2;
 
-const Imgur_OAuth2URL = "https://api.imgur.com/oauth2/token";
+export const Imgur_OAuth2URL = "https://api.imgur.com/oauth2/token";
 
-function getLocalStore() {
-    return new Promise((resolve, reject) => chrome.storage.local.get(localStoreKeys, resolve));
-}
+// Provides a synchronous view onto application storage (and communicates with
+// other tabs to make that happen), and prevents storing keys not defined on
+// extension installation.
+//
+// It's not a singleton, there's more than one, right?
+let storePolyton = null;
+export function SynchronousStore() {
+    if (storePolyton) {
+        return storePolyton;
+    }
 
-function getSyncStore() {
-    return new Promise((resolve, reject) => chrome.storage.sync.get(syncStoreKeys, resolve));
-}
-
-function SynchronousStore() {
     var initialised = false;
+
+    let self = storePolyton = {};
 
     let sync = {};
     let local = {};
@@ -70,9 +74,12 @@ function SynchronousStore() {
         });
     }
 
-    Promise.all([getLocalStore(), getSyncStore()]).then(storage => {
-        Object.assign(local, storage[0]);
-        Object.assign(sync, storage[1]);
+    Promise.all([
+        chrome.storage.local.get(localStoreKeys),
+        chrome.storage.sync.get(syncStoreKeys)
+    ]).then(([localStorage, syncStorage]) => {
+        Object.assign(local, localStorage);
+        Object.assign(sync, syncStorage);
 
         initialised = true;
 
@@ -81,7 +88,7 @@ function SynchronousStore() {
     });
 
     syncStoreKeys.forEach(key => {
-        Object.defineProperty(this, key, {
+        Object.defineProperty(self, key, {
             get() {
                 assert(initialised, "SynchronousStorage is uninitialised");
                 return sync[key];
@@ -95,7 +102,7 @@ function SynchronousStore() {
     });
 
     localStoreKeys.forEach(key => {
-        Object.defineProperty(this, key, {
+        Object.defineProperty(self, key, {
             get() {
                 assert(initialised, "SynchronousStorage is uninitialised");
                 return local[key];
@@ -111,7 +118,7 @@ function SynchronousStore() {
     // Albums are the only mutable item in storage and we don't track updates
     // to it. In principle we could make the returned albums object self-
     // managing aswell. But why bother
-    this.saveAlbums = _ => {
+    self.saveAlbums = _ => {
         pending.sync.albums = {};
         Object.assign(pending.sync.albums, sync.albums);
         saveToStore();
@@ -121,7 +128,7 @@ function SynchronousStore() {
     // request for the storage data.
 
     // Register functions to be called when Store is initialised.
-    this.onLoad = (listener, args) => {
+    self.onLoad = (listener, args) => {
         args = args || [];
 
         if (initialised) {
@@ -132,8 +139,8 @@ function SynchronousStore() {
     };
 
     // Register chrome events that require storage to be available.
-    this.listener = (event, listener) => {
-        event.addListener((...args) => this.onLoad(listener, args));
+    self.listener = (event, listener) => {
+        event.addListener((...args) => self.onLoad(listener, args));
     };
 
     // In principle we want there to be only one store. We can't share a
@@ -155,56 +162,29 @@ function SynchronousStore() {
         }
     });
 
-    Object.freeze(this);
+    Object.freeze(self);
+
+    return self;
 }
 
-function isAnonymous(isIncognito) {
+let Store = SynchronousStore();
+
+export function isAnonymous(isIncognito) {
     return !Store.authorized || (isIncognito && !Store.incognito);
 }
 
-function setAccessToken(token, expiresIn) {
+export function setAccessToken(token, expiresIn) {
     if (!expiresIn) expiresIn = 60 * 60 * 1000;
 
     Store.access_token = token;
     Store.valid_until = Date.now() + expiresIn;
 }
 
-function isJSONResponse(response) {
-    return typeof(response) === "string" && response.startsWith("{\"") && response.endsWith("}");
-}
-
-function xhrError(error, xhr, json) {
-    error.info = {
-        xmlHttpRequest: xhr,
-        status: xhr.status,
-        statusText: xhr.statusText,
-        response: xhr.response,
-        url: xhr.responseURL
-    };
-
-    if (json) {
-        error.info.response = JSON.parse(xhr.response);
-        error.hasJSONResponse = true;
-    } else {
-        error.hasJSONResponse = false;
-    }
-
-    return error;
-}
-
-function assert(condition, message) {
+export function assert(condition, message) {
     if (!condition) throw new Error(message);
 }
 
-function tryParseJson(text) {
-    try {
-        return JSON.parse(text);
-    } catch (e) {
-        return text;
-    }
-}
-
-function request(url) {
+export function request(url) {
     var result = {
         url: url,
         method: "GET",
@@ -232,72 +212,40 @@ function request(url) {
             return this;
         },
 
-        responseType(type) {
-            this.responseTypeValue = type;
-            return this;
-        },
-
         catch(callback) {
             return this.then(identity => identity).catch(callback);
         },
 
         then(callback) {
-            let self = this;
-            return new Promise((resolve, reject) => {
-                assert(self === this);
-                var xhr = new XMLHttpRequest();
-                xhr.open(self.method, self.url, true);
-                xhr.responseType = self.responseTypeValue;
+            let init = {
+                method: this.method,
+                headers: this.headerEntries,
+            };
 
-                Object.keys(self.headerEntries).forEach(header => {
-                    xhr.setRequestHeader(header, self.headerEntries[header]);
-                });
+            if (this.method === "POST") {
+                if (typeof(this.data) === "object") {
+                    let data = new FormData();
 
-                xhr.onreadystatechange = () => {
-                    if (xhr.readyState === 4) {
-                        let isJson = isJSONResponse(xhr.response);
+                    Object.keys(this.data).forEach(key => {
+                        data.append(key, this.data[key]);
+                    });
 
-                        if (xhr.status !== 200) {
-                            reject(xhrError(new Error(xhr.status), xhr, isJson));
-                        } else if (isJson) {
-                            resolve(tryParseJson(xhr.response));
-                        } else {
-                            resolve(xhr.response);
-                        }
-                    }
-                };
-
-                switch (self.method) {
-                    case "GET": {
-                        xhr.send();
-                    } break;
-                    case "POST": {
-                        var data;
-
-                        if (typeof(self.data) === "object") {
-                            data = new FormData();
-
-                            Object.keys(self.data).forEach(key => {
-                                data.append(key, self.data[key]);
-                            });
-                        } else {
-                            data = self.data;
-                        }
-
-                        xhr.send(data);
-                    } break;
-                    default: {
-                        assert(0);
-                    };
+                    init.body = data;
+                } else {
+                    init.body = this.data;
                 }
-            }).then(callback);
+            }
+
+            return fetch(this.url, init)
+                .then(response => response.ok ? response.json() : Promise.reject(response))
+                .then(callback);
         }
     };
 
     return result;
 }
 
-function refreshToken() {
+export function refreshToken() {
     return request(Imgur_OAuth2URL)
         .post({
             refresh_token: Store.refresh_token,
@@ -305,10 +253,13 @@ function refreshToken() {
             client_secret: client_secret,
             grant_type: "refresh_token"
         })
-        .then(response => (setAccessToken(response.access_token, response.expires_in), response));
+        .then(response => {
+            setAccessToken(response.access_token, response.expires_in);
+            return response;
+        });
 }
 
-function populateAlbumMenu() {
+export function populateAlbumMenu() {
     if (Store.to_albums && Object.keys(Store.albums).length > 0) {
         var albums = Store.albums;
 
@@ -331,7 +282,7 @@ function populateAlbumMenu() {
     }
 }
 
-function resetMenu() {
+export function resetMenu() {
     chrome.contextMenus.removeAll(_ => {
         chrome.contextMenus.create({ 'title': 'Capture area', 'contexts': ['page'], 'id': 'area', 'documentUrlPatterns' : ['http://*/*', 'https://*/*'] });
         chrome.contextMenus.create({ 'title': 'Rehost image', 'contexts': ['image'], 'id': 'rehost', 'documentUrlPatterns' : ['http://*/*', 'https://*/*']});

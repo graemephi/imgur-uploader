@@ -1,8 +1,28 @@
 "use strict";
 
+import {
+	client_id,
+	client_secret,
+	syncStoreKeys,
+	localStoreKeys,
+	Auth_Success,
+	Auth_None,
+	Auth_Failure,
+	Auth_Unavailable,
+	Imgur_OAuth2URL,
+	SynchronousStore,
+	isAnonymous,
+	setAccessToken,
+	assert,
+	request,
+	refreshToken,
+	populateAlbumMenu,
+	resetMenu,
+} from './common.js'
+
 var	captureAreaAlbumId;
 
-const Store = new SynchronousStore();
+const Store = SynchronousStore();
 
 function encodeURL(url) {
 	if (url.startsWith("data:image")) {
@@ -12,30 +32,25 @@ function encodeURL(url) {
 	return encodeURIComponent(url);
 }
 
-function urlToBase64(url) {
-	let canvas = document.createElement('canvas');
-	let context = canvas.getContext('2d');
-
-	let imageElement = new Image();
-	imageElement.src = url;
-
+function imageToDataURL(tabId, src, clipRect) {
 	return new Promise((resolve, reject) => {
-		imageElement.onload = _ => {
-			try {
-				let width = imageElement.width;
-				let height = imageElement.height;
-				canvas.width = width;
-				canvas.height = height;
-				context.drawImage(imageElement, 0, 0, width, height, 0, 0, canvas.width, canvas.height);
+		chrome.scripting.executeScript({ target: { tabId }, files: ['js/domOperations.js'] }, _ => {
+			chrome.tabs.sendMessage(tabId, { type: "dom op", op: "imageToDataURL", src, clipRect }, message => {
+				if (message.ok) {
+					resolve(message.result);
+				} else {
+					reject(message.result);
+				}
+			});
+		});
+	});
+}
 
-				let dataUrl = canvas.toDataURL('image/png');
-				assert(dataUrl);
-
-				resolve(dataUrl);
-			} catch (e) {
-				reject(e || new Error("Failed to create data URL from " + url));
-			}
-		};
+function clipboardWrite(tabId, src) {
+	return new Promise(resolve => {
+		chrome.scripting.executeScript({ target: { tabId }, files: ['js/domOperations.js'] }, _ => {
+			chrome.tabs.sendMessage(tabId, { type: "dom op", op: "clipboardWrite", src }, resolve);
+		});
 	});
 }
 
@@ -50,7 +65,8 @@ function imageUploadRequest(image, anonymous) {
 		});
 }
 
-function uploadImage(image, albumId, isRetry) {
+function uploadImage(tabId, image, albumId, isRetry) {
+	assert(tabId);
 	return new Promise(resolve => chrome.windows.getCurrent(resolve))
 		.then(currentWindow => {
 			if (Store.authorized && Store.valid_until < Date.now()) {
@@ -70,37 +86,32 @@ function uploadImage(image, albumId, isRetry) {
 
 			return imageUploadRequest(body, anonymous)
 				.catch(error => {
-					if (Store.authorized && error.hasJSONResponse && error.info.status === 403) {
+					if (Store.authorized && error.status === 403) {
 						return refreshToken().then(_ => imageUploadRequest(body, anonymous));
 					} else {
 						return Promise.reject(error);
 					}
 				});
 		})
-		.then(response => open(response.data, albumId))
+		.then(response => open(tabId, response.data, albumId))
 		.catch(error => {
-			console.error("Failed upload", error.info || error);
+			console.error("Failed upload", error);
 
-			if (Store.authorized && error.info && error.info.url === Imgur_OAuth2URL && error.info.status === 403) {
+			if (Store.authorized && error.url === Imgur_OAuth2URL && error.status === 403) {
 				return notify("Upload Failure", `Do not have permission to upload as ${Store.username}.`);
 			} else if (!isRetry) {
-				return urlToBase64(image).then(data => uploadImage(data, albumId, true));
+				return imageToDataURL(tabId, image).then(data => uploadImage(tabId, data, albumId, true));
 			} else {
 				return notify("Upload Failure", "That didn't work. You might want to try again.");
 			}
 		});
 }
 
-function open(data, albumId) {
+function open(tabId, data, albumId) {
 	let imageLink = data.link.replace("http:", "https:");
 
 	if (Store.to_clipboard) {
-		let textAreaElement = document.createElement('textarea');
-		document.body.appendChild(textAreaElement);
-		textAreaElement.value = imageLink;
-		textAreaElement.select();
-		document.execCommand('copy', false, null);
-		document.body.removeChild(textAreaElement);
+		clipboardWrite(tabId, imageLink);
 	}
 
 	if (Store.to_clipboard && Store.clipboard_only) {
@@ -167,60 +178,42 @@ Store.listener(chrome.contextMenus.onClicked, (info, tab) => {
 	let uploadType = info.menuItemId.split(" ");
 	if (uploadType[0] === 'area') {
 		captureAreaAlbumId = uploadType[1];
-		chrome.tabs.executeScript(tab.id, { file: 'js/captureArea.js' });
+		chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['js/captureArea.js'] });
 	} else if (uploadType[0] === 'rehost') {
-		uploadImage(info.srcUrl, uploadType[1]);
+		uploadImage(tab.id, info.srcUrl, uploadType[1]);
 	}
 });
 
-// uses the sendResponse function, does not use Store. Store.listener consumes
-// the return value, so this is a separate listener.
+// Uses the sendResponse function, and so does not use Store, as Store.listener consumes
+// the return value.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (message.type === "capture init") {
-			request("capture.html")
-				.then(response => sendResponse({ html: response }));
+			fetch(chrome.runtime.getURL("capture.html"))
+				.then(response => response.text())
+				.then(text => sendResponse({ html: text }));
 
 		return true;
 	}
 });
 
-Store.listener(chrome.runtime.onMessage, message => {
+Store.listener(chrome.runtime.onMessage, (message, sender) => {
 	if (message.type === "capture ready") {
 		chrome.tabs.getZoom(currentZoom =>
-		chrome.tabs.getZoomSettings(zoomSettings =>
-		chrome.tabs.captureVisibleTab(null, { format: 'png' }, imageData => {
-			let canvas = document.createElement('canvas');
-			let context = canvas.getContext('2d');
+		chrome.tabs.getZoomSettings(zoomSettings => {
 			let zoom = currentZoom / zoomSettings.defaultZoomFactor;
-			let pixelRatio = zoom * window.devicePixelRatio;
+			let pixelRatio = zoom * message.devicePixelRatio;
 
-			let width = Math.round(message.rect.width * pixelRatio);
-			let height = Math.round(message.rect.height * pixelRatio);
+			let width = Store.scale_capture ? message.rect.width : Math.round(message.rect.width * pixelRatio);
+			let height = Store.scale_capture ? message.rect.height : Math.round(message.rect.height * pixelRatio);
 			let x = Math.round(message.rect.x * pixelRatio);
 			let y = Math.round(message.rect.y * pixelRatio);
 
 			if (width > 0 && height > 0) {
-				if (Store.scale_capture) {
-					canvas.width = message.rect.width;
-					canvas.height = message.rect.height;
-				} else {
-					canvas.width = width;
-					canvas.height = height;
-				}
-
-				let imageElement = new Image();
-				imageElement.src = imageData;
-				imageElement.onload = _ => {
-					context.drawImage(imageElement, x, y, width, height, 0, 0, canvas.width, canvas.height);
-
-					let dataUrl = canvas.toDataURL('image/png');
-					assert(dataUrl);
-
-					uploadImage(dataUrl, captureAreaAlbumId);
-					captureAreaAlbumId = null;
-				};
+				chrome.tabs.captureVisibleTab(null, { format: 'png' })
+					.then(imageData => imageToDataURL(sender.tab.id, imageData, { x, y, width, height }))
+					.then(dataURL => uploadImage(sender.tab.id, dataURL, captureAreaAlbumId))
 			}
-		})));
+		}));
 	}
 });
 
