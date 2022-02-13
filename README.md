@@ -3,6 +3,10 @@
 
 # Changelog
 
+Version 2.4: Update to Manifest V3. Fix capture area bug when the browser's
+default zoom level was not 1.0, caused by incorrectly applying a zoom correction
+factor when the browser had already applied that correction for us. 
+
 Version 2.3.1: Fix bug caused by improper use of a browser API, which are more strict nowadays.
 
 Version 2.3: Relaxed permission requirements as made possible by updates to Chrome's extension API (or, possibly, just their documentation).
