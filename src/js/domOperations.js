@@ -53,6 +53,7 @@ function listener(message, sender, sendResponse) {
                 textAreaElement.select();
                 document.execCommand('copy', false, null);
                 document.body.removeChild(textAreaElement);
+                sendResponse({ ok: true })
             } break;
         }
     };
