@@ -21,6 +21,7 @@ function listener(message, sender, sendResponse) {
         switch (message.op) {
             case "imageToDataURL": {
                 let img = new Image();
+                img.setAttribute("crossorigin", "Anonymous");
                 img.src = message.src;
                 img.onload = _ => {
                     try {
