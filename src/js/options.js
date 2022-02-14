@@ -119,7 +119,23 @@ function wire() {
 	});
 
 	document.getElementById('to_clipboard').addEventListener('change', function (event) {
-		Store.to_clipboard = event.target.checked;
+		if (event.target.checked) {
+			chrome.permissions.request({ permissions: ['clipboardWrite'] },
+				granted => {
+					Store.to_clipboard = granted;
+
+					if (!granted) {
+						// This does not retrigger the event. But both
+						// retriggering and not are fine.
+						this.checked = false;
+					}
+				}
+			);
+		} else {
+			chrome.permissions.remove({ permissions: ['clipboardWrite'] },
+				_ => { Store.to_clipboard = false; }
+			);
+		}
 	});
 
 	document.getElementById('clipboard_only').addEventListener('change', function (event) {
