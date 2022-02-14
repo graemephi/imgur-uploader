@@ -20,8 +20,6 @@ import {
 	resetMenu,
 } from './common.js'
 
-var	captureAreaAlbumId;
-
 const Store = SynchronousStore();
 
 function encodeURL(url) {
@@ -32,10 +30,10 @@ function encodeURL(url) {
 	return encodeURIComponent(url);
 }
 
-function imageToDataURL(tabId, src, clipRect) {
+function imageToDataURL(tabId, src, clipRect, dimensions) {
 	return new Promise((resolve, reject) => {
 		chrome.scripting.executeScript({ target: { tabId }, files: ['js/domOperations.js'] }, _ => {
-			chrome.tabs.sendMessage(tabId, { type: "dom op", op: "imageToDataURL", src, clipRect }, message => {
+			chrome.tabs.sendMessage(tabId, { type: "dom op", op: "imageToDataURL", src, clipRect, dimensions }, message => {
 				if (message.ok) {
 					resolve(message.result);
 				} else {
@@ -177,43 +175,38 @@ Store.listener(chrome.runtime.onInstalled, details => {
 Store.listener(chrome.contextMenus.onClicked, (info, tab) => {
 	let uploadType = info.menuItemId.split(" ");
 	if (uploadType[0] === 'area') {
-		captureAreaAlbumId = uploadType[1];
-		chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['js/captureArea.js'] });
+		let albumId = uploadType[1];
+		fetch(chrome.runtime.getURL("capture.html"))
+			.then(response => response.text())
+			.then(html => {
+				return chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['js/captureArea.js'] }, _ => {
+					chrome.tabs.sendMessage(tab.id, { type: "capture init", html, albumId });
+				});
+			});
 	} else if (uploadType[0] === 'rehost') {
 		uploadImage(tab.id, info.srcUrl, uploadType[1]);
 	}
 });
 
-// Uses the sendResponse function, and so does not use Store, as Store.listener consumes
-// the return value.
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-	if (message.type === "capture init") {
-			fetch(chrome.runtime.getURL("capture.html"))
-				.then(response => response.text())
-				.then(text => sendResponse({ html: text }));
-
-		return true;
-	}
-});
-
 Store.listener(chrome.runtime.onMessage, (message, sender) => {
 	if (message.type === "capture ready") {
-		chrome.tabs.getZoom(currentZoom =>
-		chrome.tabs.getZoomSettings(zoomSettings => {
-			let zoom = currentZoom / zoomSettings.defaultZoomFactor;
-			let pixelRatio = zoom * message.devicePixelRatio;
+		let pixelRatio = message.devicePixelRatio;
 
-			let width = Store.scale_capture ? message.rect.width : Math.round(message.rect.width * pixelRatio);
-			let height = Store.scale_capture ? message.rect.height : Math.round(message.rect.height * pixelRatio);
-			let x = Math.round(message.rect.x * pixelRatio);
-			let y = Math.round(message.rect.y * pixelRatio);
+		let width = Math.round(message.rect.width * pixelRatio);
+		let height = Math.round(message.rect.height * pixelRatio);
+		let x = Math.round(message.rect.x * pixelRatio);
+		let y = Math.round(message.rect.y * pixelRatio);
 
-			if (width > 0 && height > 0) {
-				chrome.tabs.captureVisibleTab(null, { format: 'png' })
-					.then(imageData => imageToDataURL(sender.tab.id, imageData, { x, y, width, height }))
-					.then(dataURL => uploadImage(sender.tab.id, dataURL, captureAreaAlbumId))
-			}
-		}));
+		let scaled_width = Store.scale_capture ? message.rect.width : width;
+		let scaled_height = Store.scale_capture ? message.rect.height : height;
+
+		let albumId = message.albumId;
+
+		if (width > 0 && height > 0) {
+			chrome.tabs.captureVisibleTab(null, { format: 'png' })
+				.then(imageData => imageToDataURL(sender.tab.id, imageData, { x, y, width, height }, { width: scaled_width, height: scaled_height }))
+				.then(dataURL => uploadImage(sender.tab.id, dataURL, albumId));
+		}
 	}
 });
 

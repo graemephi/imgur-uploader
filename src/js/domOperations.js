@@ -27,10 +27,12 @@ function listener(message, sender, sendResponse) {
                     try {
                         // Can't use OffscreenCanvas here as it does not have toDataURL.
                         let { x, y, width, height } = message.clipRect || { x: 0, y: 0, width: img.width, height: img.height };
+                        let dim = message.dimensions || { width: width, height: height };
                         let canvas = document.createElement("canvas");
-                        canvas.width = width;
-                        canvas.height = height;
+                        canvas.width = dim.width;
+                        canvas.height = dim.height;
                         let ctx = canvas.getContext("2d");
+                        ctx.imageSmoothingQuality = "high";
                         ctx.drawImage(img, x, y, width, height, 0, 0, canvas.width, canvas.height);
 
                         let result = canvas.toDataURL("image/png");

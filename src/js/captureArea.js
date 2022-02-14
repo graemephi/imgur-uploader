@@ -2,6 +2,8 @@
 
 {
 
+var albumId = null;
+
 function clamp(x, min, max) {
 	return (x < min) ? min
 		 : (x > max) ? max
@@ -73,7 +75,7 @@ function onMouseMove(event) {
 function onMouseUp(event) {
 	if (selecting) {
 		let rect = rectBounds(clickX, clickY, event.clientX, event.clientY);
-		chrome.runtime.sendMessage(null, { type: "capture ready", rect: rect, devicePixelRatio: window.devicePixelRatio });
+		chrome.runtime.sendMessage(null, { type: "capture ready", rect, devicePixelRatio: window.devicePixelRatio, albumId });
 		dispose();
 	}
 }
@@ -123,9 +125,9 @@ iframe.setAttribute("style", `
 	cursor: crosshair
 `);
 
-iframe.addEventListener("load", _ => {
-	chrome.runtime.sendMessage(null, { type: "capture init" }, response => {
-		let parsedDocument = (new DOMParser()).parseFromString(response.html, "text/html");
+function setupIframe(ready, body) {
+	if (ready && body) {
+		let parsedDocument = (new DOMParser()).parseFromString(body, "text/html");
 		iframe.contentDocument.replaceChild(iframe.contentDocument.adoptNode(parsedDocument.documentElement), iframe.contentDocument.documentElement);
 
 		icon = iframe.contentDocument.querySelector(".icon");
@@ -138,7 +140,26 @@ iframe.addEventListener("load", _ => {
 		iframe.contentWindow.addEventListener("mousemove", onMouseMove);
 
 		area = iframe.contentDocument.getElementById("area");
-	});
+	}
+}
+
+var iframeReady = false;
+var iframeHTML = null;
+
+function listener(message) {
+	if (message.type == "capture init") {
+		iframeHTML = message.html;
+		albumId = message.albumId;
+		setupIframe(iframeReady, iframeHTML);
+		chrome.runtime.onMessage.removeListener(listener);
+	}
+}
+
+chrome.runtime.onMessage.addListener(listener);
+
+iframe.addEventListener("load", _ => {
+	iframeReady = true;
+	setupIframe(iframeReady, iframeHTML);
 });
 
 document.documentElement.append(iframe);
