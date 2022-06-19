@@ -2,7 +2,7 @@
 	"manifest_version" : 3,
 	"name": "imgur Uploader",
 	"description": "Right-click uploading of images and screenshots anonymously or to your imgur account.",
-	"version": "2.4.0",
+	"version": "2.4.1",
 	"icons": {
 		"16": "img/logo_16.png",
 		"48": "img/logo_48.png",

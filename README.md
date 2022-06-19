@@ -3,6 +3,8 @@
 
 # Changelog
 
+Version 2.4.1: Fix bug in oauth flow that made some people unable to authenticate with imgur.
+
 Version 2.4: Update to Manifest V3. Fix capture area bug when the browser's
 default zoom level was not 1.0, caused by incorrectly applying a zoom correction
 factor when the browser had already applied that correction for us. 
