@@ -35,9 +35,9 @@ function authenticationRedirect() {
 
 		chrome.runtime.openOptionsPage(_ => {
 			chrome.runtime.sendMessage({ type: "authentication", authenticated: true, info: queryParams })
-			.then(
+			.then(_ => {
 				chrome.tabs.getCurrent(tab => chrome.tabs.remove(tab.id))
-			)
+			})
 		});
 
 		return true;
